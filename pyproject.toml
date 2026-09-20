@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "freely-acquisition-system"
+version = "0.1.0"
+description = "Human-gated freelance opportunity discovery and proposal drafting"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "bleach==6.4.0",
+  "fastapi==0.141.1",
+  "httpx==0.28.1",
+  "psycopg[binary,pool]==3.3.6",
+  "pydantic==2.13.5",
+  "pydantic-ai-slim[openai]==1.107.6",
+  "pydantic-settings==2.15.0",
+  "uvicorn[standard]==0.53.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.4.2",
+  "pytest-asyncio==1.2.0",
+  "respx==0.22.0",
+  "ruff==0.14.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = [
+  "B008", # FastAPI's documented dependency-injection pattern uses calls in defaults.
+  "E501", # Prompt text and SQL are clearer when their logical lines remain intact.
+]

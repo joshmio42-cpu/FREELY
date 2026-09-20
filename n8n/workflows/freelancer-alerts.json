@@ -1,0 +1,102 @@
+{
+  "name": "FREELY - Freelancer Official Email Alerts",
+  "nodes": [
+    {
+      "parameters": {
+        "mailbox": "INBOX",
+        "postProcessAction": "nothing",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "forceReconnect": 60
+        }
+      },
+      "id": "freelancer-email-trigger",
+      "name": "Freelancer alert email",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2.1,
+      "position": [-420, 0],
+      "credentials": {
+        "imap": {
+          "id": "CONFIGURE_IN_N8N",
+          "name": "FREELY Freelancer Alert Mailbox"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "freelancer-project-link-condition",
+              "leftValue": "={{ ($json.text || $json.textPlain || '') + ' ' + ($json.html || $json.textHtml || '') }}",
+              "rightValue": "freelancer.com/projects/",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "freelancer-project-filter",
+      "name": "Has Freelancer project link",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-270, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/v1/intake/freelancer-alert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ subject: $json.subject || 'Freelancer project alert', text: $json.text || $json.textPlain || '', html: $json.html || $json.textHtml || '', message_id: $json.messageId || $json.message_id || null, sender: $json.from?.text || $json.from || null }) }}",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "id": "freelancer-intake",
+      "name": "Send alert to FREELY",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-120, 0],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE_IN_N8N",
+          "name": "FREELY Internal API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Freelancer alert email": {
+      "main": [[{"node": "Has Freelancer project link", "type": "main", "index": 0}]]
+    },
+    "Has Freelancer project link": {
+      "main": [[{"node": "Send alert to FREELY", "type": "main", "index": 0}], []]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "timezone": "Asia/Manila"
+  },
+  "versionId": "18c663cd-93a8-4c37-a46e-freelyalerts01",
+  "meta": {"templateCredsSetupCompleted": false},
+  "id": "FREELY_FREELANCER_ALERTS",
+  "tags": []
+}

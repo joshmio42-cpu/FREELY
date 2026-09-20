@@ -1,0 +1,91 @@
+services:
+  postgres:
+    image: postgres:17-alpine@sha256:f02121de6f74d30d8a94cd1d9584125e2178d7e6c377d8130112d4e52d867995
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-freely}
+      POSTGRES_USER: ${POSTGRES_USER:-freely}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-freely} -d ${POSTGRES_DB:-freely}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-freely}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-freely}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      AI_FAST_MODEL: ${AI_FAST_MODEL:-openai:gpt-5.4-nano}
+      AI_QUALITY_MODEL: ${AI_QUALITY_MODEL:-openai:gpt-5.4-mini}
+      STRONG_LEAD_THRESHOLD: ${STRONG_LEAD_THRESHOLD:-70}
+      PIPELINE_PROCESS_LIMIT: ${PIPELINE_PROCESS_LIMIT:-5}
+      FREELANCER_MIN_DESCRIPTION_CHARS: ${FREELANCER_MIN_DESCRIPTION_CHARS:-80}
+      REMOTEOK_API_URL: ${REMOTEOK_API_URL:-https://remoteok.com/api}
+      SCOUT_LIMIT: ${SCOUT_LIMIT:-100}
+      SCOUT_CONTRACT_ONLY: ${SCOUT_CONTRACT_ONLY:-true}
+      FREELANCER_API_AUTHORIZED: ${FREELANCER_API_AUTHORIZED:-false}
+      FREELANCER_OAUTH_TOKEN: ${FREELANCER_OAUTH_TOKEN:-}
+      FREELANCER_API_URL: ${FREELANCER_API_URL:-https://www.freelancer.com/api/projects/0.1}
+      FREELANCER_SEARCH_QUERY: ${FREELANCER_SEARCH_QUERY:-n8n automation api integration openai python}
+      FREELANCER_SCOUT_LIMIT: ${FREELANCER_SCOUT_LIMIT:-50}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.39.8@sha256:b73045abaddb40cb4024e86eea1b1f69093501a7339f685a4cd486b7743d23ae
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-freely}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:-freely}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5679/}
+      GENERIC_TIMEZONE: Asia/Manila
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
+    volumes:
+      - n8n-data:/home/node/.n8n
+      - ./n8n/workflows:/workflows:ro
+    ports:
+      - "127.0.0.1:${N8N_HOST_PORT:-5679}:5678"
+
+volumes:
+  postgres-data:
+  n8n-data:

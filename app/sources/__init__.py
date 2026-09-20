@@ -1,0 +1,1 @@
+"""Permitted opportunity source adapters."""

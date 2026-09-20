@@ -1,0 +1,31 @@
+name: Bug report
+description: Report a reproducible defect without sharing secrets or personal data.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include API keys, tokens, passwords, email contents, personal data, or client data.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the behavior using synthetic or redacted examples.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit or version
